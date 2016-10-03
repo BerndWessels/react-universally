@@ -24,6 +24,7 @@ This starter kit contains all the build tooling and configuration you need to ki
 ## Features
 
   - 🌍 Server side rendering.
+  - 🌍 Serverless option - builds a production client that does not need a server (to be hosted on a CDN).
   - 🔥 Extreme live development - hot reloading of client/server source as, with high level of error tolerance.
   - 🚄 `express` server.
   - 👮 Security on the `express` server using `helmet` and `hpp`.
@@ -169,6 +170,11 @@ Builds the client and server bundles, with the output being production optimized
 ### `npm run start`
 
 Executes the server.  It expects you to have already built the bundles either via the `npm run build` command or manually.
+
+### `npm run build:serverless`
+
+Builds the serverless client bundle, with the output being production optimized.
+This can be hosted on a CDN without the need for server-side rendering.
 
 ### `npm run clean`
 

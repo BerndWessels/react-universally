@@ -9,10 +9,12 @@ const appRoot = require('app-root-path');
 const WebpackMd5Hash = require('webpack-md5-hash');
 const { removeEmpty, ifElse, merge } = require('../utils');
 const envVars = require('../config/envVars');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const appRootPath = appRoot.toString();
 
-function webpackConfigFactory({ target, mode }, { json }) {
+function webpackConfigFactory({ target, mode }, { json, env }) {
   if (!target || ['client', 'server', 'universalMiddleware'].findIndex(valid => target === valid) === -1) {
     throw new Error(
       'You must provide a "target" (client|server|universalMiddleware) to the webpackConfigFactory.'
@@ -48,6 +50,7 @@ function webpackConfigFactory({ target, mode }, { json }) {
   const isProd = mode === 'production';
   const isClient = target === 'client';
   const isServer = target === 'server';
+  const isServerless = env && env.hasOwnProperty('serverless');
   const isUniversalMiddleware = target === 'universalMiddleware';
   const isNodeTarget = isServer || isUniversalMiddleware;
 
@@ -59,6 +62,7 @@ function webpackConfigFactory({ target, mode }, { json }) {
   const ifDevServer = ifElse(isDev && isServer);
   const ifDevClient = ifElse(isDev && isClient);
   const ifProdClient = ifElse(isProd && isClient);
+  const ifProdClientServerless = ifElse(isProd && isClient && isServerless);
 
   return {
     // We need to state that we are targetting "node" for our server bundle.
@@ -225,6 +229,9 @@ function webpackConfigFactory({ target, mode }, { json }) {
             // e.g.
             // 'process.env.MY_CUSTOM_VAR': JSON.stringify(process.env.MY_CUSTOM_VAR)
           },
+          // NOTE: The SERVERLESS key is necessary for serverless client production
+          // builds as React router needs to take the base url into account.
+          ifProdClientServerless({'process.env.SERVERLESS': true}, {'process.env.SERVERLESS': false}),
           // Now we will expose all of the .env config variables to webpack
           // so that it can make all the subtitutions for us.
           // Note: ALL of these values will be given as string types. Even if you
@@ -301,6 +308,24 @@ function webpackConfigFactory({ target, mode }, { json }) {
         // This is a production client so we will extract our CSS into
         // CSS files.
         new ExtractTextPlugin({ filename: '[name]-[chunkhash].css', allChunks: true })
+      ),
+
+      ifProdClientServerless(
+        // This is a serverless production client hosted on a CDN.
+        // So we have to create an "index.html" file for it.
+        new HtmlWebpackPlugin({
+          template: path.resolve(appRootPath, `./src/${target}/index.ejs`),
+          baseurl: envVars.CLIENT_BUNDLE_HTTP_PATH,
+          inject: false
+        })
+      ),
+
+      ifProdClientServerless(
+        // This is a serverless production client hosted on a CDN.
+        // So we have to copy all the public files to the output folder.
+        new CopyWebpackPlugin([
+          {from: 'public'}
+        ])
       ),
     ]),
     module: {

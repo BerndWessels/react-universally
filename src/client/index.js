@@ -4,7 +4,8 @@ import React from 'react';
 import { render } from 'react-dom';
 import { AppContainer } from 'react-hot-loader';
 import Router from 'react-router/lib/Router';
-import browserHistory from 'react-router/lib/browserHistory';
+import useRouterHistory from 'react-router/lib/useRouterHistory';
+import createBrowserHistory from 'history/lib/createBrowserHistory';
 import match from 'react-router/lib/match';
 import routes from '../shared/universal/routes';
 
@@ -17,6 +18,8 @@ function routerError(error) {
 }
 
 function renderApp(appRoutes) {
+  // Create the routing history.
+  let browserHistory = useRouterHistory(createBrowserHistory)({basename: process.env.SERVERLESS ? process.env.CLIENT_BUNDLE_HTTP_PATH : ''});
   // As we are using dynamic react-router routes we have to use the following
   // asynchronous routing mechanism supported by the `match` function.
   // @see https://github.com/reactjs/react-router/blob/master/docs/guides/ServerRendering.md
